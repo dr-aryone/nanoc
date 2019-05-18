@@ -68,7 +68,16 @@ module Nanoc::Checking
 
     # @private
     def output_html_filenames
-      output_filenames.select { |f| File.extname(f) =~ /\A\.x?html?\z/ }
+      excluded_patterns =
+        @config
+        .fetch(:checks, {})
+        .fetch(:all, {})
+        .fetch(:exclude_files, [])
+        .map { |pattern| Regexp.new(pattern) }
+
+      output_filenames
+        .select { |f| File.extname(f) =~ /\A\.x?html?\z/ }
+        .reject { |f| excluded_patterns.any? { |pat| pat.match?(f) } }
     end
   end
 end

@@ -58,7 +58,29 @@ describe Nanoc::Checking::Check do
     subject { check.output_html_filenames }
 
     let(:check) do
-      described_class.new(output_filenames: output_filenames)
+      described_class.new(
+        output_filenames: output_filenames,
+        config: Nanoc::ConfigView.new(config, view_context),
+      )
+    end
+
+    let(:config) do
+      Nanoc::Core::Configuration.new(
+        dir: Dir.getwd,
+        hash: config_hash,
+      )
+    end
+
+    let(:config_hash) { {} }
+
+    let(:view_context) do
+      double(:view_context, dependency_tracker: dependency_tracker)
+    end
+
+    let(:dependency_tracker) do
+      double(:dependency_tracker).tap do |dt|
+        allow(dt).to receive(:bounce)
+      end
     end
 
     let(:output_filenames) do
@@ -72,12 +94,20 @@ describe Nanoc::Checking::Check do
       ]
     end
 
-    it { is_expected.to include('output/foo.html') }
-    it { is_expected.to include('output/foo.htm') }
-    it { is_expected.to include('output/foo.xhtml') }
+    context 'when exclude_files is unset' do
+      it { is_expected.to include('output/foo.html') }
+      it { is_expected.to include('output/foo.htm') }
+      it { is_expected.to include('output/foo.xhtml') }
 
-    it { is_expected.not_to include('output/foo.txt') }
-    it { is_expected.not_to include('output/foo.htmlx') }
-    it { is_expected.not_to include('output/foo.yhtml') }
+      it { is_expected.not_to include('output/foo.txt') }
+      it { is_expected.not_to include('output/foo.htmlx') }
+      it { is_expected.not_to include('output/foo.yhtml') }
+    end
+
+    context 'when exclude_files is set' do
+      let(:config_hash) { { checks: { all: { exclude_files: ['foo.xhtml'] } } } }
+
+      it { is_expected.not_to include('output/foo.xhtml') }
+    end
   end
 end
